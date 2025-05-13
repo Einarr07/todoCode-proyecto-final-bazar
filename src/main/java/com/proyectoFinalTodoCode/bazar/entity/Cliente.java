@@ -18,4 +18,15 @@ public class Cliente {
 
     @Column(unique = true)
     private String dni;
+
+    public Cliente() {
+
+    }
+
+    public Cliente(Long idCliente, String nombre, String apellido, String dni) {
+        this.idCliente = idCliente;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.dni = dni;
+    }
 }

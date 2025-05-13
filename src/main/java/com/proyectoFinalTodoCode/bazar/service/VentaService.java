@@ -1,5 +1,6 @@
 package com.proyectoFinalTodoCode.bazar.service;
 
+import com.proyectoFinalTodoCode.bazar.dto.*;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import com.proyectoFinalTodoCode.bazar.entity.Venta;
 import jakarta.transaction.Transactional;
@@ -9,7 +10,11 @@ import com.proyectoFinalTodoCode.bazar.repository.IProductoRepository;
 import com.proyectoFinalTodoCode.bazar.repository.IVentaRepository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class VentaService implements IVentaService{
@@ -18,7 +23,7 @@ public class VentaService implements IVentaService{
     private IVentaRepository ventaRepository;
 
     @Autowired
-    private IProductoRepository productoRepository;
+    private IProductoService productoService;
 
     @Override
     public List<Venta> getAllVentas() {
@@ -31,23 +36,40 @@ public class VentaService implements IVentaService{
     }
 
     @Override
-    @Transactional
-    public Venta crearVentaConValidacion(Venta venta) {
+    public Venta crearVenta(Venta venta) {
+        // Validar que la venta tenga productos
         if (venta.getListaProductos() == null || venta.getListaProductos().isEmpty()) {
-            throw new RuntimeException("La venta debe contener al menos 1 producto");
+            throw new IllegalArgumentException("La venta debe contener al menos un producto");
         }
 
-        if (venta.getCliente() == null) {
-            throw new RuntimeException("La venta debe estar asociado al cliente");
+        // Validar que tenga cliente asociado
+        if (venta.getCliente() == null || venta.getCliente().getIdCliente() == null) {
+            throw new IllegalArgumentException("La venta debe tener un cliente asociado");
         }
 
-        verificarDisponibilidadStock(venta.getListaProductos());
+        // Obtener productos completos de la base de datos
+        List<Producto> productosCompletos = venta.getListaProductos().stream()
+                .map(producto -> productoService.getProductoById(producto.getCodigoProducto()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-        actulizarStock(venta.getListaProductos());
+        // Validar que todos los productos existan
+        if (productosCompletos.size() != venta.getListaProductos().size()) {
+            throw new IllegalArgumentException("Uno o más productos no existen");
+        }
 
-        calcularTotalVenta(venta);
+        // Calcular el total
+        double total = productosCompletos.stream()
+                .mapToDouble(Producto::getCosto)
+                .sum();
 
-        venta.setFechaVenta(LocalDate.now());
+        // Actualizar la venta con los datos correctos
+        venta.setListaProductos(productosCompletos);
+        venta.setTotal(total);
+        venta.setFechaVenta(LocalDate.now()); // Opcional: usar fecha actual si no viene especificada
+
+        // Procesar venta (actualizar stocks)
+        procesarVenta(venta);
 
         return ventaRepository.save(venta);
     }
@@ -60,11 +82,13 @@ public class VentaService implements IVentaService{
 
     @Override
     @Transactional
-    public Venta updateVenta(Venta venta) {
+    public Venta updateVenta(Long codigoVenta,Venta venta) {
+        Venta ven = this.findVentaById(codigoVenta);
 
-        if(!ventaRepository.existsById(venta.getCodigoVenta())){
-            throw new RuntimeException("Venta no encontrada ID: " + venta.getCodigoVenta());
-        }
+        ven.setFechaVenta(venta.getFechaVenta());
+        ven.setTotal(venta.getTotal());
+        ven.setListaProductos(venta.getListaProductos());
+        ven.setCliente(venta.getCliente());
 
         return ventaRepository.save(venta);
     }
@@ -75,36 +99,87 @@ public class VentaService implements IVentaService{
         ventaRepository.deleteById(id);
     }
 
-    private void verificarDisponibilidadStock(List<Producto> productos) {
-        for (Producto productoVenta : productos) {
-            Producto productoDB = productoRepository.findById(productoVenta.getCodigoProducto()).orElseThrow(
-                    () -> new RuntimeException("Producto no encontrada ID: " + productoVenta.getCodigoProducto()));
-
-            if (productoDB.getCantidadDisponible() < 1){
-                throw new RuntimeException("Stock insuficiente para el producto: " + productoDB.getNombre() +
-                        ". Disponible: " + productoDB.getCodigoProducto());
-            }
-        }
+    @Override
+    public void procesarVenta(Venta venta) {
+        venta.getListaProductos().forEach(producto -> {
+            productoService.actualizarStock(producto.getCodigoProducto(), 1.0);
+        });
     }
 
-    private void actulizarStock(List<Producto> productos) {
-        for (Producto productoVenta : productos) {
-            Producto productoDB = productoRepository.findById(productoVenta.getCodigoProducto()).get();
-
-            Double cantidad = productoVenta.getCantidadVendida() != null ? productoVenta.getCantidadVendida() : 1;
-            productoDB.setCantidadDisponible(productoDB.getCantidadDisponible() - cantidad);
-            productoRepository.save(productoDB);
+    @Override
+    public VentaProductosDTO obtenerProductosDeVenta(Long codigoVenta) {
+        Venta venta = findVentaById(codigoVenta);
+        if (venta == null) {
+            throw new IllegalArgumentException("Venta no encontrada");
         }
-    }
 
-    private void calcularTotalVenta(Venta venta) {
-        double total = venta.getListaProductos().stream()
-                .mapToDouble(producto -> {
-                    Producto productoDB = productoRepository.findById(producto.getCodigoProducto()).get();
-                    return productoDB.getCosto();
+        VentaProductosDTO dto = new VentaProductosDTO();
+        dto.setCodigoVenta(venta.getCodigoVenta());
+
+        List<ProductoStockDTO> productosDTO = venta.getListaProductos().stream()
+                .map(p -> {
+                    ProductoStockDTO productoDTO = new ProductoStockDTO();
+                    productoDTO.setCodigoProducto(p.getCodigoProducto());
+                    productoDTO.setNombre(p.getNombre());
+                    productoDTO.setMarca(p.getMarca());
+                    productoDTO.setCosto(p.getCosto());
+                    productoDTO.setCantidadDisponible(p.getCantidadDisponible());
+                    return productoDTO;
                 })
-                .sum();
+                .collect(Collectors.toList());
 
-        venta.setTotal(total);
+        dto.setProductoStock(productosDTO);
+        return dto;
+    }
+
+    @Override
+    public VentasDelDiaDTO obetenerResumenVentaPorDia(LocalDate fecha) {
+        List<Venta> ventasDelDia = ventaRepository.findAllByFechaVenta(fecha);
+
+        VentasDelDiaDTO dto = new VentasDelDiaDTO();
+        dto.setFecha(fecha);
+        dto.setCatidadVentas(ventasDelDia.size());
+        dto.setMontoTotal(ventasDelDia.stream()
+                .mapToDouble(Venta::getTotal)
+                .sum());
+
+        return dto;
+    }
+
+    @Override
+    public MayorVentaDTO obtenerMayorVenta() {
+        List<Venta> ventas = ventaRepository.findAll();
+        if (ventas.isEmpty()) {
+            throw new IllegalStateException("No hay ventas registradas");
+        }
+
+        Venta mayorVenta = ventas.stream()
+                .max(Comparator.comparingDouble(Venta::getTotal))
+                .orElseThrow(() -> new IllegalStateException("No se pudo determinar la mayor venta"));
+
+        // Mapear a MayorVentaDTO
+        MayorVentaDTO dto = new MayorVentaDTO();
+        dto.setCodigoVenta(mayorVenta.getCodigoVenta());
+        dto.setTotal(mayorVenta.getTotal());
+        dto.setCantidadProductos(mayorVenta.getListaProductos().size());
+        dto.setNombreCliente(mayorVenta.getCliente().getNombre());
+        dto.setApellidoCliente(mayorVenta.getCliente().getApellido());
+
+        // Mapear productos si es necesario
+        List<ProductoStockDTO> productosDTO = mayorVenta.getListaProductos().stream()
+                .map(p -> {
+                    ProductoStockDTO productoDTO = new ProductoStockDTO();
+                    productoDTO.setCodigoProducto(p.getCodigoProducto());
+                    productoDTO.setNombre(p.getNombre());
+                    productoDTO.setMarca(p.getMarca());
+                    productoDTO.setCosto(p.getCosto());
+                    productoDTO.setCantidadDisponible(p.getCantidadDisponible());
+                    return productoDTO;
+                })
+                .collect(Collectors.toList());
+
+        dto.setProductos(productosDTO);
+
+        return dto;
     }
 }

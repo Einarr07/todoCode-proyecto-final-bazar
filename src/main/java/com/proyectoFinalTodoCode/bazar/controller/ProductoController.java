@@ -1,5 +1,6 @@
 package com.proyectoFinalTodoCode.bazar.controller;
 
+import com.proyectoFinalTodoCode.bazar.dto.ProductoStockDTO;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,12 @@ public class ProductoController {
         return ResponseEntity.ok(producto);
     }
 
+    @GetMapping("/falta_stock")
+    public ResponseEntity<List<ProductoStockDTO>> obtenerProductosConStockBajo() {
+        List<ProductoStockDTO> productos = productoService.obtenerProductosConStockMenorA5();
+        return ResponseEntity.ok(productos);
+    }
+
     @PostMapping("/crear")
     public ResponseEntity<Producto> createProducto(@RequestBody Producto producto) {
         productoService.saveProducto(producto);
@@ -51,7 +58,7 @@ public class ProductoController {
         productoExistente.setCosto(producto.getCosto());
         productoExistente.setCantidadDisponible(producto.getCantidadDisponible());
 
-        Producto productoActualizado = productoService.updateProducto(productoExistente);
+        Producto productoActualizado = productoService.updateProducto(id, productoExistente);
 
         return new ResponseEntity<>(productoActualizado, HttpStatus.OK);
     }

@@ -17,5 +17,16 @@ public class Producto {
     private String marca;
     private Double costo;
     private Double cantidadDisponible;
-    private Double cantidadVendida;
+
+    public Producto() {
+
+    }
+
+    public Producto(Long codigoProducto, String nombre, String marca, Double costo, Double cantidadDisponible) {
+        this.codigoProducto = codigoProducto;
+        this.nombre = nombre;
+        this.marca = marca;
+        this.costo = costo;
+        this.cantidadDisponible = cantidadDisponible;
+    }
 }

@@ -19,9 +19,26 @@ public class Venta {
     private LocalDate fechaVenta;
     private Double total;
 
-    @OneToMany
+    @ManyToMany
+    @JoinTable(
+            name = "venta_producto",
+            joinColumns = @JoinColumn(name = "venta_id"),
+            inverseJoinColumns = @JoinColumn(name = "producto_id"))
     private List<Producto> listaProductos;
 
-    @OneToOne
+    @ManyToOne
+    @JoinColumn(name = "id_cliente")
     private Cliente cliente;
+
+    public Venta() {
+
+    }
+
+    public Venta(Long codigoVenta, LocalDate fechaVenta, Double total, List<Producto> listaProductos, Cliente cliente) {
+        this.codigoVenta = codigoVenta;
+        this.fechaVenta = fechaVenta;
+        this.total = total;
+        this.listaProductos = listaProductos;
+        this.cliente = cliente;
+    }
 }
