@@ -1,6 +1,6 @@
 package com.proyectoFinalTodoCode.bazar.service;
 
-import com.proyectoFinalTodoCode.bazar.dto.ProductoStockDTO;
+import com.proyectoFinalTodoCode.bazar.dto.ProductosStockBajaDTO;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 
 import java.util.List;
@@ -19,5 +19,5 @@ public interface IProductoService {
 
     public void actualizarStock(Long codigoProducto, Double cantidadVendida);
 
-    List<ProductoStockDTO> obtenerProductosConStockMenorA5();
+    List<ProductosStockBajaDTO> obtenerProductosStockBajaMenor5();
 }

@@ -1,10 +1,8 @@
 package com.proyectoFinalTodoCode.bazar.service;
 
 import com.proyectoFinalTodoCode.bazar.dto.MayorVentaDTO;
-import com.proyectoFinalTodoCode.bazar.dto.VentaDTO;
 import com.proyectoFinalTodoCode.bazar.dto.VentaProductosDTO;
 import com.proyectoFinalTodoCode.bazar.dto.VentasDelDiaDTO;
-import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import com.proyectoFinalTodoCode.bazar.entity.Venta;
 
 import java.time.LocalDate;

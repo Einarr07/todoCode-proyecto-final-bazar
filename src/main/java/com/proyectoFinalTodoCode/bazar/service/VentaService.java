@@ -1,16 +1,15 @@
 package com.proyectoFinalTodoCode.bazar.service;
 
 import com.proyectoFinalTodoCode.bazar.dto.*;
+import com.proyectoFinalTodoCode.bazar.entity.Cliente;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import com.proyectoFinalTodoCode.bazar.entity.Venta;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.proyectoFinalTodoCode.bazar.repository.IProductoRepository;
 import com.proyectoFinalTodoCode.bazar.repository.IVentaRepository;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -24,6 +23,9 @@ public class VentaService implements IVentaService{
 
     @Autowired
     private IProductoService productoService;
+
+    @Autowired
+    private IClienteService clienteService;
 
     @Override
     public List<Venta> getAllVentas() {
@@ -82,15 +84,31 @@ public class VentaService implements IVentaService{
 
     @Override
     @Transactional
-    public Venta updateVenta(Long codigoVenta,Venta venta) {
+    public Venta updateVenta(Long codigoVenta, Venta venta) {
         Venta ven = this.findVentaById(codigoVenta);
 
+        // Actualizar solo campos modificables
         ven.setFechaVenta(venta.getFechaVenta());
-        ven.setTotal(venta.getTotal());
-        ven.setListaProductos(venta.getListaProductos());
-        ven.setCliente(venta.getCliente());
 
-        return ventaRepository.save(venta);
+        // Cargar productos completos desde la base de datos
+        List<Producto> productosCompletos = venta.getListaProductos().stream()
+                .map(p -> productoService.getProductoById(p.getCodigoProducto()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        ven.setListaProductos(productosCompletos);
+
+        // Cargar cliente completo
+        Cliente clienteCompleto = clienteService.findClienteById(venta.getCliente().getIdCliente());
+        ven.setCliente(clienteCompleto);
+
+        // Recalcular total
+        double nuevoTotal = productosCompletos.stream()
+                .mapToDouble(Producto::getCosto)
+                .sum();
+        ven.setTotal(nuevoTotal);
+
+        return ventaRepository.save(ven);
     }
 
     @Override

@@ -1,10 +1,8 @@
 package com.proyectoFinalTodoCode.bazar.controller;
 
 import com.proyectoFinalTodoCode.bazar.dto.MayorVentaDTO;
-import com.proyectoFinalTodoCode.bazar.dto.VentaDTO;
 import com.proyectoFinalTodoCode.bazar.dto.VentaProductosDTO;
 import com.proyectoFinalTodoCode.bazar.dto.VentasDelDiaDTO;
-import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import com.proyectoFinalTodoCode.bazar.entity.Venta;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -38,20 +36,20 @@ public class VentaController {
         return new ResponseEntity<>(venta, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}/productos")
+    @GetMapping("/productos/{id}")
     public ResponseEntity<VentaProductosDTO> obtenerProductosDeVenta(@PathVariable Long id) {
         VentaProductosDTO dto = ventaService.obtenerProductosDeVenta(id);
         return ResponseEntity.ok(dto);
     }
 
-    @GetMapping("/{fecha_venta}")
+    @GetMapping("/venta-del-dia/{fecha_venta}")
     public ResponseEntity<VentasDelDiaDTO> obtenerVentasDelDia(@PathVariable String fecha_venta) {
         LocalDate fecha = LocalDate.parse(fecha_venta);
         VentasDelDiaDTO dto = ventaService.obetenerResumenVentaPorDia(fecha);
         return ResponseEntity.ok(dto);
     }
 
-    @GetMapping("/mayor_venta")
+    @GetMapping("/mayor-venta")
     public ResponseEntity<MayorVentaDTO> obtenerMayorVenta() {
         MayorVentaDTO dto = ventaService.obtenerMayorVenta();
         return ResponseEntity.ok(dto);

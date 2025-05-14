@@ -1,6 +1,6 @@
 package com.proyectoFinalTodoCode.bazar.service;
 
-import com.proyectoFinalTodoCode.bazar.dto.ProductoStockDTO;
+import com.proyectoFinalTodoCode.bazar.dto.ProductosStockBajaDTO;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,12 +27,19 @@ public class ProductoService implements IProductoService{
 
     @Override
     public void saveProducto(Producto producto) {
+        if (producto.getCantidadDisponible() < 0){
+            throw new IllegalArgumentException("La cantidad dispible no puede ser menor que 0");
+        }
         productoRepository.save(producto);
     }
 
     @Override
     public Producto updateProducto(Long codigoProducto, Producto producto) {
         Producto prod = this.getProductoById(codigoProducto);
+
+        if (prod.getCantidadDisponible() != null && prod.getCantidadDisponible() < 0){
+            throw new IllegalArgumentException("La cantidad disponible no puede ser menor que 0");
+        }
 
         prod.setNombre(producto.getNombre());
         prod.setMarca(producto.getMarca());
@@ -58,7 +65,7 @@ public class ProductoService implements IProductoService{
     }
 
     @Override
-    public List<ProductoStockDTO> obtenerProductosConStockMenorA5() {
+    public List<ProductosStockBajaDTO> obtenerProductosStockBajaMenor5() {
         List<Producto> productos = productoRepository.findAll()
                 .stream()
                 .filter(p -> p.getCantidadDisponible() < 5)
@@ -66,7 +73,7 @@ public class ProductoService implements IProductoService{
 
         return productos.stream()
                 .map(p -> {
-                    ProductoStockDTO dto = new ProductoStockDTO();
+                    ProductosStockBajaDTO dto = new ProductosStockBajaDTO();
                     dto.setCodigoProducto(p.getCodigoProducto());
                     dto.setNombre(p.getNombre());
                     dto.setMarca(p.getMarca());

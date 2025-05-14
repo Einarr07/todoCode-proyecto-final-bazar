@@ -1,6 +1,6 @@
 package com.proyectoFinalTodoCode.bazar.controller;
 
-import com.proyectoFinalTodoCode.bazar.dto.ProductoStockDTO;
+import com.proyectoFinalTodoCode.bazar.dto.ProductosStockBajaDTO;
 import com.proyectoFinalTodoCode.bazar.entity.Producto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,9 +33,9 @@ public class ProductoController {
         return ResponseEntity.ok(producto);
     }
 
-    @GetMapping("/falta_stock")
-    public ResponseEntity<List<ProductoStockDTO>> obtenerProductosConStockBajo() {
-        List<ProductoStockDTO> productos = productoService.obtenerProductosConStockMenorA5();
+    @GetMapping("/falta-stock")
+    public ResponseEntity<List<ProductosStockBajaDTO>> obtenerProductosConStockBajo() {
+        List<ProductosStockBajaDTO> productos = productoService.obtenerProductosStockBajaMenor5();
         return ResponseEntity.ok(productos);
     }
 
